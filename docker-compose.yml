@@ -1,0 +1,70 @@
+services:
+  db:
+    image: crpi-bhjs34yuuqd3hyux.cn-hangzhou.personal.cr.aliyuncs.com/registry_shiye/database:latest
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: AI
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  mqtt:
+    image: crpi-bhjs34yuuqd3hyux.cn-hangzhou.personal.cr.aliyuncs.com/registry_shiye/mqtt:latest
+    container_name: mqtt-broker
+    restart: always
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - ./mqtt/conf:/mosquitto/config
+
+  web:
+    image: crpi-bhjs34yuuqd3hyux.cn-hangzhou.personal.cr.aliyuncs.com/registry_shiye/ai:latest
+    container_name: django-backend
+    restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: seraver.settings
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: AI
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 123456
+      MQTT_BROKER: mqtt
+      MQTT_PORT: 1883
+    depends_on:
+      - db
+      - mqtt
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+  from:
+    image: nginx:latest
+    container_name: front
+    restart: always
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/html/:/usr/share/nginx/html/
+      - ./nginx/config/://etc/nginx/conf.d/
+
+
+volumes:
+  db_data:
+  mosquitto_data:
+  mosquitto_config:

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Upload Image</h2>
+<form id="uploadForm" enctype="multipart/form-data">
+  <input type="file" id="fileInput" name="image">
+  {% csrf_token %}
+  <input type="button" value="Upload Image" onclick="uploadImage()">
+</form>
+<h2>Resoult</h2>
+<p id = "predict">prediction N/A</p>
+
+<script>
+function uploadImage() {
+  const formData = new FormData(document.getElementById('uploadForm'));
+  fetch('/picture', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Success:', data);
+    document.getElementById('predict').innerText='prediction'+ data.predict
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+  });
+}
+</script>
+
+</body>
+</html>
